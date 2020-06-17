@@ -69,6 +69,64 @@ class Tree
         value > root.value ? insert(value, root.right_child) : insert(value, root.left_child)
     end
 
+    def delete(value)
+        if !tree_includes?(value)
+            not_in_tree_error_message
+            return
+        end
+
+        if value == self.root.value
+            root_value_error_message
+            return
+        end
+
+        node = find(value)
+        parent = find_parent(value)
+
+        if node.leaf?
+            parent.left_child == node ? parent.left_child = nil : parent.right_child = nil
+            return
+        end
+
+        if node.value < parent.value
+            if !node.left_child && node.right_child
+                parent.left_child = node.right_child
+            elsif !node.right_child && node.left_child
+                parent.left_child = node.left_child
+            else
+                node_left_child = node.left_child
+                node_right_child = node.right_child
+                smallest_child = node_right_child
+
+                until smallest_child.leaf?
+                    smallest_child = smallest_child.left_child
+                end
+
+                parent.left_child = node_right_child
+                smallest_child.left_child = node_left_child
+            end
+        end
+
+        if node.value > parent.value
+            if !node.left_child && node.right_child
+                parent.right_child = node.right_child
+            elsif !node.right_child && node.left_child
+                parent.right_child = node.left_child
+            else
+                node_left_child = node.left_child
+                node_right_child = node.right_child
+                smallest_child = node_left_child
+
+                until smallest_child.leaf?
+                    smallest_child = smallest_child.left_child
+                end
+
+                parent.right_child = node_left_child
+                smallest_child.right_child = node_right_child
+            end
+        end
+    end
+
     def find(value, root=self.root)
         return root if root.value == value
         return if root.leaf?
@@ -82,8 +140,118 @@ class Tree
         end
     end
 
+    def level_order(&block)
+        def get_queue(root=self.root, queue=[])
+            if root.leaf?
+                queue << root.value
+                return
+            end
+
+            queue << root.value
+            get_queue(root.left_child, queue) if root.left_child
+            get_queue(root.right_child, queue) if root.right_child
+
+            queue
+        end
+
+        block_given? ? get_queue.map { |n| yield(n) } : get_queue
+    end
+
+    def preorder(&block)
+        def get_values(root=self.root, values=[])
+            if root.leaf?
+                values << root.value
+                return
+            end
+
+            values << root.value
+            get_values(root.left_child, values) if root.left_child
+            get_values(root.right_child, values) if root.right_child
+
+            values
+        end
+
+
+        block_given? ? get_values.map { |n| yield(n) } : get_values
+    end
+
+    def inorder(&block)
+        def get_values(root=self.root, values=[])
+            if root.leaf?
+                values << root.value
+                return
+            end
+
+            get_values(root.left_child, values) if root.left_child
+            values << root.value
+            return values if root.value == self.root.value
+            get_values(root.right_child, values) if root.right_child
+
+            values
+        end
+
+        values = get_values + get_values(self.root.right_child)
+        
+
+        block_given? ? values.map { |n| yield(n) } : values
+    end
+
+    def postorder(&block)
+        def get_values(root=self.root, values=[])
+            if root.leaf?
+                values << root.value
+                return
+            end
+
+            get_values(root.left_child, values) if root.left_child
+            get_values(root.right_child, values) if root.right_child
+            values << root.value
+            values
+        end
+
+        block_given? ? get_values.map { |n| yield(n) } : get_values
+    end
+
 
     private
+
+    def find_parent(value, root=self.root)
+        
+        if !tree_includes?(value)
+            not_in_tree_error_message
+            return
+        end
+
+        if self.root.value == value
+            root_value_error_message
+            return
+        end
+
+        if root.left_child
+            return root if root.left_child.value == value
+        end
+
+        if root.right_child
+            return root if root.right_child.value == value
+        end
+        
+        if value < root.value && root.left_child
+            return find_parent(value, root.left_child)
+        end
+
+        if value > root.value && root.right_child
+            return find_parent(value, root.right_child)
+        end
+        
+    end
+
+    def root_value_error_message
+        puts "Error: This value is the root of the Tree."
+    end
+
+    def not_in_tree_error_message
+        puts "Error: This value is not in the Tree."
+    end
 
     def tree_includes?(value)
         find(value) ? true : false
@@ -95,11 +263,14 @@ class Tree
 
 end
 
+#if you insert find doesn't work -- need to rebalance
+
 my_tree = Tree.new([1, 7, 4, 23, 8, 9, 4, 3, 5, 7, 9, 67, 6345, 324])
 my_tree.build_tree
-my_tree.insert(6)
-puts my_tree.root
-p my_tree.find(6)
+#my_tree.insert(6)
+#puts my_tree.root
+#my_tree.delete(67)
+#p my_tree.postorder { |n| n + 1}
 
 
 
