@@ -16,7 +16,7 @@ module BinarySearchTree
         end
 
         def to_s
-            print "(#{self.value})"
+            print "#{self.value}"
             ""
         end
 
@@ -133,41 +133,25 @@ module BinarySearchTree
             block_given? ? ordered.uniq.map { |n| yield(n) } : ordered.uniq
         end
 
-        def preorder(&block)
-            def get_nodes(root=self.root, ordered=[])
-                ordered << root
-                get_nodes(root.left_child, ordered) if root.left_child
-                get_nodes(root.right_child, ordered) if root.right_child
-
-                ordered
-            end
-
-            block_given? ? get_nodes.map { |n| yield(n) } : get_nodes
-        end
-
-        def inorder(&block)
-            def get_nodes(root=self.root, ordered=[])
-                get_nodes(root.left_child, ordered) if root.left_child
-                ordered << root
-                get_nodes(root.right_child, ordered) if root.right_child
-
-                ordered
-            end
-
-            block_given? ? get_nodes.map { |n| yield(n) } : get_nodes
-        end
-
-        def postorder(&block)
-            def get_nodes(root=self.root, ordered=[])
+        ["preorder", "postorder", "inorder"].each do |order|
+            define_method("#{order}") do |root=self.root, ordered=[], &block|
+                case order
+                when "preorder"
+                    ordered << root
+                    preorder(root.left_child, ordered) if root.left_child
+                    preorder(root.right_child, ordered) if root.right_child
+                when "postorder"
+                    postorder(root.left_child, ordered) if root.left_child
+                    postorder(root.right_child, ordered) if root.right_child
+                    ordered << root
+                when "inorder"
+                    inorder(root.left_child, ordered) if root.left_child
+                    ordered << root
+                    inorder(root.right_child, ordered) if root.right_child
+                end
                 
-                get_nodes(root.left_child, ordered) if root.left_child
-                get_nodes(root.right_child, ordered) if root.right_child
-                ordered << root
-
-                ordered
+                block ? ordered.map { |n| block.call(n) } : ordered
             end
-
-            block_given? ? get_nodes.map { |n| yield(n) } : get_nodes
         end
 
         def depth(root=self.root, depths=[])
