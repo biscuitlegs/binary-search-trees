@@ -46,29 +46,17 @@ module BinarySearchTree
         end
 
         def insert(value, root=self.root)
-            
-            if tree_includes?(value)
-                duplicate_error_message
-                return
-            end
+            return duplicate_error_message if tree_includes?(value)
 
             smallest_node = self.level_order.sort_by { |n| n.value }[0]
             biggest_node = self.level_order.sort_by { |n| n.value }[-1]
 
-            if value < smallest_node.value
-                smallest_node.left_child = Node.new(value)
-            end
-
-            if value > biggest_node.value
-                biggest_node.right_child = Node.new(value)
-            end
-
+            smallest_node.left_child = Node.new(value) if value < smallest_node.value
+            biggest_node.right_child = Node.new(value) if value > biggest_node.value
+        
             if value > smallest_node.value && value < biggest_node.value
                 current_value = value
-
-                until tree_includes?(current_value)
-                    current_value += 1
-                end
+                current_value += 1 until tree_includes?(current_value)
 
                 parent = self.find(current_value)
                 new_node = Node.new(value)
@@ -78,15 +66,8 @@ module BinarySearchTree
         end
 
         def delete(value)
-            if !tree_includes?(value)
-                not_in_tree_error_message
-                return
-            end
-
-            if value == self.root.value
-                root_value_error_message
-                return
-            end
+            return not_in_tree_error_message if !tree_includes?(value)
+            return root_value_error_message if value == self.root.value
 
             node = find(value)
             parent = find_parent(value)
@@ -137,15 +118,9 @@ module BinarySearchTree
 
         def find(value, root=self.root)
             return root if root.value == value
-            return if root.leaf?
             
-            if value < root.value && root.left_child
-                return find(value, root.left_child)
-            end
-
-            if value > root.value && root.right_child
-                return find(value, root.right_child)
-            end
+            return find(value, root.left_child) if value < root.value && root.left_child
+            return find(value, root.right_child) if value > root.value && root.right_child
         end
 
         def level_order(queue=[self.root], ordered=[], &block)
@@ -160,41 +135,26 @@ module BinarySearchTree
 
         def preorder(&block)
             def get_nodes(root=self.root, ordered=[])
-                if root.leaf?
-                    ordered << root
-                    return
-                end
-
                 ordered << root
                 get_nodes(root.left_child, ordered) if root.left_child
                 get_nodes(root.right_child, ordered) if root.right_child
 
                 ordered
             end
-
 
             block_given? ? get_nodes.map { |n| yield(n) } : get_nodes
         end
 
         def inorder(&block)
             def get_nodes(root=self.root, ordered=[])
-                if root.leaf?
-                    ordered << root
-                    return
-                end
-
                 get_nodes(root.left_child, ordered) if root.left_child
                 ordered << root
-                return ordered if root == self.root
                 get_nodes(root.right_child, ordered) if root.right_child
 
                 ordered
             end
 
-            ordered = get_nodes + get_nodes(self.root.right_child)
-            
-
-            block_given? ? ordered.map { |n| yield(n) } : ordered
+            block_given? ? get_nodes.map { |n| yield(n) } : get_nodes
         end
 
         def postorder(&block)
@@ -203,6 +163,7 @@ module BinarySearchTree
                 get_nodes(root.left_child, ordered) if root.left_child
                 get_nodes(root.right_child, ordered) if root.right_child
                 ordered << root
+
                 ordered
             end
 
@@ -213,7 +174,6 @@ module BinarySearchTree
             return 0 if root.leaf?
             
             leaves = level_order([root]).filter { |node| node.leaf? }
-
             current_node = leaves[0]
 
             leaves.each_with_index do |node, i|
@@ -225,7 +185,6 @@ module BinarySearchTree
 
                 current_node = leaves[i + 1] if leaves[i + 1]
             end
-
 
             depths.max
         end
@@ -249,33 +208,13 @@ module BinarySearchTree
         private
 
         def find_parent(value, root=self.root)
+            return nil if !tree_includes?(value) || self.root.value == value
+
+            return root if root.left_child && root.left_child.value == value 
+            return root if root.right_child && root.right_child.value == value
             
-            if !tree_includes?(value)
-                not_in_tree_error_message
-                return
-            end
-
-            if self.root.value == value
-                root_value_error_message
-                return
-            end
-
-            if root.left_child
-                return root if root.left_child.value == value
-            end
-
-            if root.right_child
-                return root if root.right_child.value == value
-            end
-            
-            if value < root.value && root.left_child
-                return find_parent(value, root.left_child)
-            end
-
-            if value > root.value && root.right_child
-                return find_parent(value, root.right_child)
-            end
-            
+            return find_parent(value, root.left_child) if root.left_child && value < root.value
+            return find_parent(value, root.right_child) if root.right_child && value > root.value 
         end
 
         def root_value_error_message
