@@ -30,7 +30,7 @@ module BinarySearchTree
 
         def initialize(array)
             @array = array.uniq.sort.map { |value| Node.new(value) }
-            @root = build_tree(@array)
+            @root = build_tree
         end
         
         def build_tree(array=@array)
@@ -155,7 +155,7 @@ module BinarySearchTree
                 ordered << queue.shift
             end
 
-            block_given? ? ordered.map { |n| yield(n) } : ordered
+            block_given? ? ordered.uniq.map { |n| yield(n) } : ordered.uniq
         end
 
         def preorder(&block)
@@ -199,11 +199,7 @@ module BinarySearchTree
 
         def postorder(&block)
             def get_nodes(root=self.root, ordered=[])
-                if root.leaf?
-                    ordered << root
-                    return
-                end
-
+                
                 get_nodes(root.left_child, ordered) if root.left_child
                 get_nodes(root.right_child, ordered) if root.right_child
                 ordered << root
@@ -213,24 +209,25 @@ module BinarySearchTree
             block_given? ? get_nodes.map { |n| yield(n) } : get_nodes
         end
 
-        def depth(root, level_depth=0)
-            current_node = root
+        def depth(root=self.root, depths=[])
+            return 0 if root.leaf?
+            
+            leaves = level_order([root]).filter { |node| node.leaf? }
 
-            until current_node.leaf?
-                if current_node.left_child
-                    level_depth += 1
-                    current_node = current_node.left_child
-                    next
+            current_node = leaves[0]
+
+            leaves.each_with_index do |node, i|
+                depths << 0
+                until current_node == self.root
+                    current_node = find_parent(current_node.value)
+                    depths[i] += 1
                 end
 
-                if current_node.right_child
-                    level_depth += 1
-                    current_node = current_node.right_child
-                    next
-                end
+                current_node = leaves[i + 1] if leaves[i + 1]
             end
 
-            level_depth
+
+            depths.max
         end
 
         def balanced?
@@ -239,7 +236,13 @@ module BinarySearchTree
         end
 
         def rebalance!
-            @root = self.build_tree(self.level_order.sort.map { |value| Node.new(value) })
+            @array = level_order.sort_by { |node| node.value }
+            @array.each do |node|
+                node.left_child = nil
+                node.right_child = nil
+            end
+
+            @root = build_tree
         end
 
 
@@ -293,45 +296,3 @@ module BinarySearchTree
 
     end
 end
-#if you insert find doesn't work -- need to rebalance
-
-#my_tree = Tree.new([1, 7, 4, 23, 8, 9, 4, 3, 5, 7, 9, 67, 6345, 324])
-#my_tree.build_tree
-#my_tree.insert(10)
-#my_tree.insert(12)
-#puts my_tree.root
-#my_tree.delete(67)
-#p my_tree.postorder { |n| n + 1}
-#my_tree.rebalance!
-#p my_tree.root
-
-
-
-    
-
-=begin
-    def assign_levels(root, array=[])
-        return if !root.left_child && !root.right_child
-        
-        if root.left_child
-            root.left_child.level = root.level + 1
-            assign_levels(root.left_child)
-        end
-        
-        if root.right_child
-            root.right_child.level = root.level + 1
-            assign_levels(root.right_child)
-        end
-    end
-
-    def order_by_level(array, sorted=[])
-        array.group_by { |node| node.level }.sort_by { |k, v| k }.each do |k, v|
-            sorted << v
-        end
-    
-        sorted.flatten
-    end
-=end
-
-
-
